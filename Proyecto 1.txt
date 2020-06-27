@@ -1,0 +1,139 @@
+import sqlite3
+from classes import Slang
+
+conn=sqlite3.connect("slang.db")
+
+c=conn.cursor()
+
+
+
+def control():
+    while True:
+        try:
+            opt=int(input(""" \nSelecciona la opcion que deseas:
+            1) Agregar nueva palabra
+            2) Editar palabra existente
+            3) Eliminar palabra existente
+            4) Ver listado de palabras
+            5) Buscar el significado de una palabra
+            6) Salir
+            """))
+        except:
+            print("El valor no es valido")
+        else:
+            if opt in range(1,6):
+                return opt
+            elif opt==6:
+                return None
+            else:
+                print("el valor que ingresaste no es valido")
+
+def main(option=True):
+    print("Bienvenido al programa de los slangs panameños")
+    while option:
+        option=control()
+        if option==1:
+            add()
+        elif option==2:
+            slang=input("ingresa el slang panameño que requieres editar: ")
+            valor=edit(slang.strip())
+            if not valor:
+                print("la palabra ingresada no está en la base de datos")
+            else:
+                print(valor)
+        elif option==3:
+            slang=input("ingresa el slang panameño que deseas eliminar: ")
+            valor=delete(slang.strip())
+            if valor:
+                print(valor)
+        elif option==4:
+            slangs=display()
+            if slangs:
+                for slang,definition in slangs:
+                    print("-"*50)
+                    print(f"aqui en Panamá {slang} tiene el significado de {definition}")
+                    print("-"*50)
+        elif option==5:
+            slang=input("ingresa el slang que deseas conocer para asi obtener su significado: ")
+            definitions=get_def(slang)
+            if definitions:
+                for definition in definitions:
+                    print(f"\n{slang} significa {definition[0]}")
+            else:
+                print("La palabra que escogiste no se encuentra en la base de datos.")
+    print("Gracias por usar este programa!")
+
+
+
+def add():
+    """
+    Te permite agregar una palabra con su definicion
+    """
+    while True:
+        slang=input("Escribe la palabra que deseas agregar: ")
+        definition=input("escribe la definicion de la palabra: ")
+        try:
+            slang=Slang(slang.strip(), definition.strip())
+        except:
+            print("Hay un problema con tu palabra")
+        else:
+            print(slang)
+            break
+    with conn:
+        c.execute("INSERT INTO slangs VALUES (:slang,:definition)", {"slang":slang.slang, "definition": slang.definition}) 
+        print("Slang añadido a la base de datos")
+        return slang
+
+def edit(slang):
+    """
+    Edita el significado de la palabra
+    """
+    c.execute("SELECT definition FROM slangs WHERE slang=:slang",{"slang":slang})
+    if not c.fetchone():
+        print("el slang solicitado no existe en la base de datos.")
+        return None
+    definition=input("cual es la nueva definicion de la palabra {}: ".format(slang))
+    with conn:
+        try:
+            c.execute("UPDATE slangs SET definition= :definition WHERE slang=:slang", {"definition":definition, "slang":slang})
+        except:
+            print("Hubo un problema en la actualizacion")
+            return None
+    return "Definicion actualizada exitosamente"
+
+def delete(slang):
+    """
+    Elimina el slang y su respectiva definicion
+    """
+    c.execute("SELECT definition FROM slangs WHERE slang=:slang",{"slang":slang})
+    if not c.fetchone():
+        print("el slang solicitado no se encuentra en la base de datos.")
+        return None
+    with conn:
+        try:
+            c.execute("DELETE FROM slangs where slang=:slang", {"slang":slang})
+        except:
+            print("Error eliminando")
+        return "Palabra eliminada con exito"
+
+def display():
+    """
+    Muestra todas las palabras en la base de datos junto con su definición
+    """
+    try:
+        c.execute("SELECT * FROM slangs")
+    except:
+        print("Ups ocurrió un problema con la base de datos")
+        return None
+    return c.fetchall()
+
+def get_def(slang):
+    """
+    nos muestra la definicion de la palabra seleccionada
+    """
+    try:
+        c.execute("SELECT definition FROM slangs WHERE slang=:slang",{"slang":slang})
+    except:
+        print("Ups ocurrió un problema con la base de datos")
+        return None
+    return c.fetchall()

@@ -1,0 +1,126 @@
+import os
+from pymongo import MongoClient
+#---------------------------------- Data Base Configuration------------------------------------
+
+client= MongoClient("mongodb+srv://Leidys:"+os.environ["dbpass"]+"@cluster0-pmgbq.mongodb.net/slangs?retryWrites=true&w=majority")
+db= client.slangs #Conect to db
+slangs_collection=db.slangs #Connect to collection
+
+
+
+def control():
+    while True:
+        try:
+            opt=int(input(""" \nSelecciona la opcion que deseas:
+            1) Añadir nueva palabra
+            2) Editar palabra existente
+            3) Eliminar palabra existente
+            4) Ver listado de palabras
+            5) Buscar el significado de una palabra
+            6) Salir
+            """))
+        except:
+            print("El valor no es valido")
+        else:
+            if opt in range(1,6):
+                return opt
+            elif opt==6:
+                return None
+            else:
+                print("El valor no es valido")
+
+def main(opcion=True):
+    print("Bienvenido al programa de slangs panameños")
+    while option:
+        opcion=control()
+        if option==1:
+            print(add(slangs_collection))
+        elif option==2:
+            slang=input("Ingresa el slang que deseas editar: ")
+            valor=edit(slang.strip(),slangs_collection)
+            print(valor)
+        elif option==3:
+            slang=input("Ingresa el slang que deseas eliminar: ")
+            valor=delete(slang.strip(),slangs_collection)
+            print(valor)
+        elif option==4:
+            slangs=display(slangs_collection)
+        elif option==5:
+            slang=input("Ingresa el slang que deseas conocer para asi obtener su significado: ")
+            definicion=get_def(slang.strip(), slangs_collection)
+            print(definicion)
+            
+    print("Gracias por usar este programa!")
+
+
+
+def add(collection):
+    """
+    Te permite agregar una palabra junto con su significado
+    """
+    while True:
+        slang=input("Escribe la palabra que deseas agregar: ")
+        if collection.find_one({"slang":slang}):
+            print("El slang seleccionado ya está en la base de datos")
+        else:
+            try:
+                definition=input("Escriba el significado de la palabra: ")
+                wordl={"slang": slang, "definition": definition}
+            except:
+                print("Ups al parecer hubo un problema con tu palabra")
+            else:
+                print("En Panamá "+ wordl["slang"]+ " significa "+ wordl["definition"])
+                break
+    result=collection.insert_one(wordl)
+    return "Slang añadido a la base de datos con id: " + str(result.inserted_id)
+
+def edit(slang,collection):
+    """
+    Edita el significado de una palabra
+    """
+    if collection.find_one({"slang": slang}):
+        definition=input(f"Por favor inserta una nueva definicion para {slang}: ")
+        wordl=collection.find_one_and_update({"slang":slang},{"$set":{"definition": definition}})
+    else:
+        return "El slang que has escojido no se encuentra en la base de datos."
+    wordl=collection.find_one({"slang":slang})
+    return "Slang con id: "+str(wordl["_id"])+ ". Editado con exito."
+
+def delete(slang,collection):
+    """
+    Elimina el slang y su significado
+    """
+    if collection.find_one({"slang": slang}):
+        try:
+            collection.delete_one({"slang":slang})
+        except:
+            return "Ups ha ocurrido un error"
+        else:
+            return "La palabra fue eliminada con exito."
+    else:
+        return "El slang no se encuentra en la base de datos."
+
+def display(collection):
+    """
+    Muestra todas las palabras en la base de datos con su significado
+    """
+    try:
+        words=collection.find({})
+    except:
+        return "Ups hubo un problema en la base de datos"
+    else:
+        print("Slangs en la base de Datos: \n")
+    for word in words:
+        print("-"*50)
+        print("En Panamá " + word["slang"] + " significa "+ word["definition"])
+        print("-"*50)
+
+def get_def(slang,collection):
+    """
+    Muestra la definicion de la palabra escojida
+    """
+    try:
+        result=collection.find_one({"slang":slang})
+    except:
+        return "La palabra no aparece en la base de datos"
+    return f"\nLa definicion de {slang} es {result['definition']}"

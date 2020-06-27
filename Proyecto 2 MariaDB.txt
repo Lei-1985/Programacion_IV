@@ -1,0 +1,142 @@
+import os
+
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+import pymysql
+
+
+
+app=Flask(__name__)
+
+
+app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://"+ os.environ["dbuser"]+":"+os.environ["dbpass"]+ "@localhost/slangs"
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"]=False
+
+db=SQLAlchemy(app)
+
+class Slang(db.Model):
+    __tablename__="slangs"
+
+    id=db.Column(db.Integer, primary_key=True)
+    wordl=db.Column(db.String(50))
+    definition=db.Column(db.String(100))
+
+    def __init__(self, word, definition):
+        self.wordl=wordl
+        self.definition=definition
+
+    def __repr__(self):
+        return f"En Panamá {self.wordl} significa {self.definition}"
+
+db.create_all()
+
+
+
+def control():
+    while True:
+        try:
+            option=int(input(""" \nSelecciona la opcion que deseas:
+            1) Añadir una palabra
+            2) Editar palabra existente
+            3) Eliminar palabra existente
+            4) Ver listado de palabras
+            5) Buscar el significado de una palabra
+            6) Salir
+            """))
+        except:
+            print("El valor no es valido")
+        else:
+            if opc in range(1,6):
+                return option
+            elif option==6:
+                return None
+            else:
+                print("El valor no es valido")
+
+def main(opt=True):
+    print("Bienvenido al programa de slangs panameños")
+    while opcion:
+        opt=control()
+        if opt==1:
+            add()
+        elif opt==2:
+            slang=input("Ingresa el slang que deseas editar: ")
+            edit(slang.strip())
+        elif opt==3:
+            slang=input("Ingresa el slang que deseas eliminar: ")
+            valor=delete(slang.strip())
+            if valor:
+                print(valor)
+        elif opt==4:
+            display()
+        elif opt==5:
+            slang=input("Ingresa el slang del cual deseas saber su significado: ")
+            get_def(slang)
+    print("Gracias por usar el programa!")
+
+
+
+def add():
+    """
+    Agrega una palabra con su definicion
+    """
+    while True:
+        slang=input("Escriba la palabra que deseas agregar: ")
+        definition=input("Escriba el significado de la palabra: ")
+        try:
+            slang=Slang(slang.strip(), definition.strip())
+        except:
+            print("Ups hubo un problema con tu palabra")
+        else:
+            print(slang)
+            db.session.add(slang)
+            db.session.commit()
+            break
+
+def edit(slang):
+    """
+    Edita la descripcion de la palabra
+    """
+    wordl=Slang.query.filter_by(word=slang).first()
+    try:
+        wordl.definition=input("Agrega la nueva definicion: ")
+    except:
+        print("Slang no disponible")
+        return None
+    db.session.commit()
+
+def delete(slang):
+    """
+    Elimina el slang y el significado
+    """
+    wordl=Slang.query.filter_by(palabra=slang).first()
+    try:
+        db.session.delete(word)
+    except:
+        print("El slang no esta en la base de datos")
+        return None
+    db.session.commit()
+
+
+def display():
+    """
+    Muestra todas las palabras en la base de datos con su respectivo significado
+    """
+    words=Slang.query.all()
+    if words:
+        for word in words:
+            print("-"*50)
+            print(word)
+            print("-"*50)
+    else:
+        return None
+
+def get_def(slang):
+    """
+    Muestra la definicion de la palabra escojida
+    """
+    words=Slang.query.filter_by(palabra=slang)
+    print(f"{slang} significa: ")
+    for i,word in enumerate(words):
+        print(str(i+1)+ ". " + word.definition)
+        
